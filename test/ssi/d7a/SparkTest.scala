@@ -6,15 +6,14 @@ import org.apache.spark.SparkConf
 import org.junit.Test
 
 class SparkTest {
-  @Test
-  def test {
-   val logFile = "/opt/spark-1.1.0-bin-hadoop2.4/README.md"
-//    val conf = new SparkConf().setAppName("Simple Application")
-   println(System.getProperty("java.class.path"))
-   val sc = new SparkContext("local", "test")
-   val logData = sc.textFile(logFile, 2).cache()
-   val numAs = logData.filter(line => line.contains("a")).count()
-   val numBs = logData.filter(line => line.contains("b")).count()
-   println("Lines with a: %s, Lines with b: %s".format(numAs, numBs))
-  }
+    @Test
+    def test {
+        val path = s"${System.getProperty("user.dir")}/testResources/assets/asset_service_apj_complete_340434_INC_India_Distributor_201408211304_PART000.txt.20140821130439"
+    
+        val sc = new SparkContext("local", "test")
+        val logData = sc.textFile(path, 2).cache()
+        val numAs = logData.filter(line => line.contains("WARRANTY")).count()
+        val numBs = logData.filter(line => line.contains("b")).count()
+        println("Lines with WARRANTY: %s, Lines with b: %s".format(numAs, numBs))
+    }
 }

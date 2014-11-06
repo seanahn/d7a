@@ -20,3 +20,5 @@ libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1
 
 play.Project.playScalaSettings
 
+resourceDirectory in Test <<= (baseDirectory) apply {(baseDir: File) => baseDir / "testResources"}
+
