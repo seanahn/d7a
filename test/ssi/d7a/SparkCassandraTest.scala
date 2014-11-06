@@ -7,6 +7,7 @@ import org.junit.After
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 import scala.util.control.NonFatal
+import org.apache.spark.sql.cassandra.CassandraSQLContext
 
 class SparkCassandraTest {
     val cluster = Cluster.builder.addContactPoint("127.0.0.1").build
@@ -28,7 +29,6 @@ class SparkCassandraTest {
 
     @Test
     def test {
-        import com.datastax.spark.connector._
         $("""CREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };""")
         $("""CREATE TABLE test.kv(key text PRIMARY KEY, value int);""")
         $("""INSERT INTO test.kv(key, value) VALUES ('key1', 1)""")
@@ -44,9 +44,16 @@ class SparkCassandraTest {
         val sc = new SparkContext("local", "test", conf)
 //        sc.addJar("/opt/play-2.2.1/repository/cache/com.datastax.spark/spark-cassandra-connector_2.10/jars/spark-cassandra-connector_2.10-1.1.0-beta1.jar")
 //        val csc = com.datastax.spark.connector.toSparkContextFunctions(sc)
+        import com.datastax.spark.connector._
         val rdd = sc.cassandraTable("test", "kv")
 		println(rdd.count)
-//		println(rdd.first)
-//		println(rdd.map(_.getInt("value")).sum)  
+		println(rdd.first)
+
+		// exercise sql now
+		import org.apache.spark.sql._
+		val csc: CassandraSQLContext = new CassandraSQLContext(sc)
+		csc.setKeyspace("tets")
+        val srdd: SchemaRDD = csc.sql("select * from test.kv") // is this generating the full output
+        println ("count : " +  srdd.count) // does not work
     }
 }
