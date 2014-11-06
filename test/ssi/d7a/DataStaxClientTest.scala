@@ -5,6 +5,7 @@ import com.datastax.driver.core.Cluster
 import scala.collection.JavaConversions._
 import org.junit.After
 import org.junit.Before
+import scala.util.control.NonFatal
 
 class DataStaxClientTest {
     val cluster = Cluster.builder.addContactPoint("127.0.0.1").build
@@ -14,7 +15,7 @@ class DataStaxClientTest {
     
     @Before
     def dropSchema {
-        $("DROP KEYSPACE simplex")
+        try $("DROP KEYSPACE simplex") catch{case NonFatal(e) =>}
     }
 
     @After
