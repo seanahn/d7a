@@ -73,8 +73,10 @@ class SparkCassandraTest {
         val logData = sc.textFile(path).map(line => line.split("\t"))
         val rdd = sc.cassandraTable("testload", "assets");
         println("inserting data")
+        var tester = sc.parallelize(logData.take(1))
+        tester.saveToCassandra("testload", "assets", rdd.columnNames);
         try
-            logData.map(line => (line(0),
+            logData.map(line => sc.parallelize(line/*line(0),
                                  line(1),
                                  line(2),
                                  line(3),
@@ -128,68 +130,15 @@ class SparkCassandraTest {
                                  line(51),
                                  line(52),
                                  line(53),
-                                 line(54))).saveToCassandra(
-                    "testLoad", "assets", Seq( "name",
-                                            "state",
-                                            "supportType", 
-                                            "someString",
-                                            "someNumber",
-                                            "amount",
-                                            "amountType",
-                                            "startDate",
-                                            "endDate",
-                                            "quarter",
-                                            "someNumberTwo",
-                                            "someNumberThree",
-                                            "someStringTwo",
-                                            "someDate",
-                                            "someNumberFour",
-                                            "someDateTwo",
-                                            "someNumberFive",
-                                            "someDateThree",
-                                            "someNumberSix",
-                                            "someStringThree",
-                                            "productString",
-                                            "productStringTwo",
-                                            "productStringThree",
-                                            "productSolution",
-                                            "productType",
-                                            "someNumberSeven",
-                                            "someStringFour",
-                                            "someStringFive",
-                                            "someStringSix",
-                                            "someStringSeven",
-                                            "someStringEight",
-                                            "someStringNine",
-                                            "someStringTen",
-                                            "someStringEleven",
-                                            "someStringTwelve",
-                                            "someStringThirteen",
-                                            "someStringFourteen",
-                                            "someStringFifteen",
-                                            "someStringSixteen",
-                                            "someStringSeventeen",
-                                            "someStringEighteen",
-                                            "someStringNineteen",
-                                            "someStringTwenty",
-                                            "someStringTwentyOne",
-                                            "someStringTwentyTwo",
-                                            "someStringTwentyThree",
-                                            "someStringTwentyFour",
-                                            "someStringTwentyFive",
-                                            "someStringTwentySix",
-                                            "someStringTwentySeven",
-                                            "someStringTwentyEight",
-                                            "someStringTwentyNine",
-                                            "someStringThirty",
-                                            "someStringThirtyOne")
-                    )
+                                 line(54)*/)).saveToCassandra(
+                    "testload", "assets", rdd.columnNames)
+                    
         catch {
             case NonFatal(e) =>
         }
         println("done inserting")
         val csc: CassandraSQLContext = new CassandraSQLContext(sc)
-        csc.setKeyspace("testLoad")
+        csc.setKeyspace("testload")
 
         val srdd: SchemaRDD = csc.sql("select * from assets") // is this generating the full output
         println("count : " +  srdd.count())
