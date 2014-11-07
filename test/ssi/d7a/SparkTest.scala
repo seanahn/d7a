@@ -3,6 +3,7 @@ package ssi.d7a
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
+import org.joda.time.DateTime
 import org.junit.Test
 
 class SparkTest {
