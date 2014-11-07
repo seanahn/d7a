@@ -53,7 +53,9 @@ class SparkCassandraTest {
         
         val collection = sc.parallelize(Seq(("key3", 3), ("key4", 4)))
         collection.saveToCassandra("test", "kv", SomeColumns("key", "value"))
+
 		println(rdd.count)
 		assertEquals(4, rdd.count)
     }
+
 }
