@@ -1,20 +1,20 @@
 package ssi.d7a
 
 import org.junit.Assert._
-
 import org.junit.Test
 import java.io._
 import java.util._
-
 import com.sforce.async._
 import com.sforce.soap.partner.PartnerConnection
 import com.sforce.ws.ConnectionException
 import com.sforce.ws.ConnectorConfig
+import com.sforce.soap.partner.Connector
+import ssi.d7a.force._
 
 class ForceConnectTest {
 
     @Test
-    def test {
+    def testBulkInsert {
         val path = System.getProperty("user.dir") + "/testResources/opportunities/opportunities.csv"
         val connection = getBulkConnection("kemiller-engdev@servicesource.com", "password12345Q1bl8JghwYhgxpJ1l1rdNo6O")
         val job = createJob("Opportunity", connection)
@@ -23,7 +23,34 @@ class ForceConnectTest {
         awaitCompletion(connection, job, batchInfoList)
         assertEquals(1, checkResults(connection, job, batchInfoList))
     }
+    
+    @Test
+    def testQuery {
+        System.out.println("Querying for the 5 newest Contacts...");
+        // query for the 5 newest contacts     
+        val connection = getConnection("kemiller-engdev@servicesource.com", "password12345Q1bl8JghwYhgxpJ1l1rdNo6O")
+        var query = "SELECT Id, FirstName, LastName, Account.Name FROM Contact WHERE AccountId != NULL ORDER BY CreatedDate DESC LIMIT 5"
+        var queryResults = connection.query(query);
+        if (queryResults.getSize > 0) for (s <- queryResults.getRecords())
+            println(s"Id: ${s.getId()} ${s.getField("FirstName")} ${s.getField("LastName")} - ${s.getChild("Account").getField("Name")}")
 
+        query = "SELECT Id, Name FROM Account WHERE Name = 'GenePoint'"
+        queryResults = connection.query(query);
+        if (queryResults.getSize > 0) for (s <- queryResults.getRecords())
+            println(s"Id: ${s.getId()} ${s.getField("Name")}")
+        
+        // now use the dynamics
+        val account = ForceBase.Account.getByName("GenePoint")
+        println(account.Id)
+    }
+
+    def getConnection(userName: String, password: String) : PartnerConnection = {
+        val config = new ConnectorConfig();
+        config.setUsername(userName);
+        config.setPassword(password);
+        //config.setTraceMessage(true);
+        Connector.newConnection(config);
+    }
     /**
      * Create the BulkConnection used to call Bulk API operations.
      */
