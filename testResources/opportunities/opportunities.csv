@@ -1,0 +1,2 @@
+AccountId,Amount,CloseDate,CreatedById,Description,ExpectedRevenue,ForecastCategory,LastModifiedById,LeadSource,NextStep,Name,OwnerId,CampaignId,IsPrivate,Probability,TotalOpportunityQuantity,StageName,Type
+001j0000002MNX2AAO,10.00,2015-01-01,,,,,,,,OppName1,,,,10,,stage1,
