@@ -1,0 +1,45 @@
+package ssi.d7a
+
+import org.joda.time.DateTime;
+
+class Opportunity(accountId: String,
+                  amount: String,
+                  closeDate: DateTime,
+                  isClosed: Boolean,
+                  createdById: String,
+                  createdDate: DateTime,
+                  isDeleted: Boolean,
+                  description: String,
+                  expectedRevenue: Double,
+                  fiscalYear: Integer,
+                  fiscalQuarter: Integer,
+                  forecastCategory: String,
+                  forecastCategoryName: String,
+                  hasOpportunityLineItem: Boolean,
+                  lastActivityDate: DateTime,
+                  lastModifiedById: String,
+                  lastModifiedDate: DateTime,
+                  lastReferencedDate: DateTime,
+                  lastViewedDate: DateTime,
+                  leadSource: String,
+                  nextStep: String,
+                  currencyIsoCode: String,
+                  division: String,
+                  id: String,
+                  name: String,
+                  ownerId: String,
+                  pricebook2Id: String,
+                  campaignId: String,
+                  isPrivate: Boolean,
+                  probability: Integer,
+                  totalOpportunityQuantity: Double,
+                  connectionReceivedId: String,
+                  connectionSentId: String,
+                  stageName: String,
+                  systemModstamp: DateTime,
+                  territoryId: String,
+                  opportunityType: String,
+                  isWon: Boolean
+) extends java.io.Serializable  {
+
+}
