@@ -48,6 +48,7 @@ class SparkCassandraTest {
 		val csc: CassandraSQLContext = new CassandraSQLContext(sc)
 		csc.setKeyspace("tets")
         val srdd: SchemaRDD = csc.sql("select * from test.kv") // is this generating the full output
+        println(srdd.schema.fieldNames)
         println("count : " +  srdd.count)
 		assertEquals(2, rdd.count)
         

@@ -65,7 +65,7 @@ class DataServiceTest {
     
     @Test
     def testFetch {
-        DataService.fetch
+//        DataService.fetch
         val results = session.execute(s"SELECT * FROM simplex.songs WHERE id = $lastSong;");
 		System.out.println(String.format("%-30s\t%-20s\t%-20s\n%s", "title", "album", "artist",
 		       "-------------------------------+-----------------------+--------------------"));

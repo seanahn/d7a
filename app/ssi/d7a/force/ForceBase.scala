@@ -39,5 +39,13 @@ class ForceType(val typeName: String) extends Dynamic {
 class ForceObject(val typeName: String, val obj: SObject) extends Dynamic {
     import scala.collection.JavaConversions._
     
+    def toMap: Map[String, Any] = {
+        val fields = scala.collection.mutable.Map[String, Any]()
+        for(child <- obj.getChildren) {
+          fields += child.getName().getLocalPart() -> child.getValue()
+        }
+        Map(fields.toList: _*)
+    }
+
     def selectDynamic[T](name: String): T = obj.getField(name).asInstanceOf[T]
 }

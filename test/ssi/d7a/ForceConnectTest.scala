@@ -10,6 +10,7 @@ import com.sforce.ws.ConnectionException
 import com.sforce.ws.ConnectorConfig
 import com.sforce.soap.partner.Connector
 import ssi.d7a.force._
+import scala.collection.JavaConversions._
 
 class ForceConnectTest {
 
@@ -41,7 +42,11 @@ class ForceConnectTest {
         
         // now use the dynamics
         val account = ForceBase.Account.getByName("GenePoint")
+        println(account.toMap)
         println(account.Id)
+        
+        // insert it to cassandra
+        
     }
 
     def getConnection(userName: String, password: String) : PartnerConnection = {
@@ -165,7 +170,6 @@ class ForceConnectTest {
     def awaitCompletion(connection: BulkConnection, job: JobInfo, batchInfoList:java.util.List[BatchInfo]) {
         var sleepTime = 0L
         val incomplete = new java.util.HashSet[String]()
-        import scala.collection.JavaConversions._
         for (bi <- batchInfoList) {
             incomplete.add(bi.getId())
         }
