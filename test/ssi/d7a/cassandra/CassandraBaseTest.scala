@@ -10,6 +10,7 @@ import java.util.UUID
 import org.junit.Test
 import org.junit.Assert._
 import java.text.SimpleDateFormat
+import java.util.Date
 
 object CassandraTest {
     val cluster = Cluster.builder.addContactPoint("127.0.0.1").build
@@ -105,5 +106,29 @@ class CassandraTest {
 
         dump(asset.released)
         assertEquals(new SimpleDateFormat("yyyy-MM-dd").parse("2014-01-02"), asset.released)
+
+        CassandraBase.logger.debug("getting row")
+        asset = assets.get("select * from test.assets where title = 'DOES NOT EXIST'")
+        assertNull(asset)
+        
+        // insert using a map
+        val now = System.currentTimeMillis()
+        var newAsset: CassandraObject = assets += ("id" -> null, "title" -> "new", "released" -> new Date(now))
+        assertEquals("new", newAsset.title)
+        assertEquals(now / 1000 * 1000, newAsset.released.asInstanceOf[Date].getTime())
+        
+        // update a field
+        newAsset.title = "updated"
+        newAsset = assets.put(newAsset)
+        assertEquals("updated", newAsset.title)
+        assertEquals(now / 1000 * 1000, newAsset.released.asInstanceOf[Date].getTime())
+
+        // insert using setters
+        newAsset = assets.spawn
+        newAsset.title = "spawned"
+        newAsset.released = new Date(now)
+        newAsset = assets += newAsset
+        assertEquals("spawned", newAsset.title)
+        assertEquals(now / 1000 * 1000, newAsset.released.asInstanceOf[Date].getTime())
     }
 }

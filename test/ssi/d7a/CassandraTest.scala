@@ -23,23 +23,11 @@ object CassandraTest {
     @BeforeClass
     def dropSchema {
         try $("DROP KEYSPACE test") catch {case NonFatal(e) =>}
-    }
-
-    @AfterClass
-    def closeConnection {
-//        dropSchema
-        session.close
-        cluster.close
-    }
-}
-
-class CassandraTest {
-    import CassandraTest._
-    
-    @Before
-    def createData {
-        setLogLevel(Level.DEBUG, "ssi")
         
+        createData
+    }
+
+    def createData {
         $("""CREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };""")
         $("""CREATE TABLE test.assets (
             id uuid PRIMARY KEY, 
@@ -78,8 +66,21 @@ class CassandraTest {
         }
     }
 
+    @AfterClass
+    def closeConnection {
+//        dropSchema
+        session.close
+        cluster.close
+    }
+}
+
+class CassandraTest {
+    import CassandraTest._
+    
     @Test
     def test {
+        setLogLevel(Level.DEBUG, "ssi")
+        
 //        val conf = new SparkConf(true).set("spark.cassandra.connection.host", "127.0.0.1").set("spark.cassandra.connection.rpc.port", "9160")
 //        val sc = new SparkContext("local", "test", conf)
 //        import com.datastax.spark.connector._
