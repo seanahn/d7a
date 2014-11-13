@@ -48,24 +48,22 @@ class CassandraType(val keySpaceName: String, val typeName: String) {
     
     def spawn = new CassandraObject(typeName, null)
     
-    def getByName(name: String): CassandraObject = {
-        val query = s"select * from $keySpaceName.$typeName where name = '$name'"
-        get(query)
-    }
-    
-    def getById(id: UUID): CassandraObject = {
-        val query = s"select * from $keySpaceName.$typeName where id = $id"
-        get(query)
-    }
-    
-    def apply(id: UUID) = getById(id)
-
     def get(query: String): CassandraObject = {
         logger.debug(query)
         val results = session.execute(query)
         results.one() match {
           case null => null
           case r: Row => new CassandraObject(typeName, r)
+        }
+    }
+
+    def fetch(query: String): Iterator[CassandraObject] = {
+        logger.debug(query)
+        val results = session.execute(query).iterator
+        return new Iterator[CassandraObject] {
+            def hasNext = results.hasNext
+            
+            def next = new CassandraObject(typeName, results.next)
         }
     }
 
@@ -103,6 +101,18 @@ class CassandraType(val keySpaceName: String, val typeName: String) {
     
     def +=(co: CassandraObject) = put(co)
     
+    def getByName(name: String): CassandraObject = {
+        val query = s"select * from $keySpaceName.$typeName where name = '$name'"
+        get(query)
+    }
+    
+    def getById(id: UUID): CassandraObject = {
+        val query = s"select * from $keySpaceName.$typeName where id = $id"
+        get(query)
+    }
+    
+    def apply(id: UUID) = getById(id)
+
     def serialize(cassandraType: String, value: Any): String = {
         logger.debug(s"serializing $value to $cassandraType...")
         cassandraType match {

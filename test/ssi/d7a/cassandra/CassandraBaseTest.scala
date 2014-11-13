@@ -130,5 +130,13 @@ class CassandraTest {
         newAsset = assets += newAsset
         assertEquals("spawned", newAsset.title)
         assertEquals(now / 1000 * 1000, newAsset.released.asInstanceOf[Date].getTime())
+        
+        // fetch
+        assertEquals(3, assets.fetch("select * from test.assets").fold(0) {
+            (cnt, asset) => {
+                println(asset.asInstanceOf[CassandraObject].id)
+                cnt.asInstanceOf[Int] + 1
+            }
+        })
     }
 }
