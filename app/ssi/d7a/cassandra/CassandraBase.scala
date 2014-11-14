@@ -7,9 +7,10 @@ import com.datastax.driver.core.Row
 import scala.reflect.runtime.universe._
 import java.util.Date
 import java.util.UUID
-import scala.swing.Table
 import java.text.SimpleDateFormat
 import com.datastax.driver.core.ColumnDefinitions
+import com.datastax.driver.core.exceptions.InvalidQueryException
+import scala.collection.JavaConversions._
 
 object CassandraBase extends Dynamic {
     val cluster = Cluster.builder.addContactPoint("127.0.0.1").build
@@ -17,6 +18,8 @@ object CassandraBase extends Dynamic {
 
     val logger = Logger.of(getClass)
 
+    var schemaless = false
+    
     val keySpacesByName = scala.collection.mutable.Map[String, CassandraKeyspace]()
     
     def selectDynamic(keySpaceName: String): CassandraKeyspace = keySpacesByName.getOrElse(keySpaceName, {
@@ -41,30 +44,59 @@ class CassandraKeyspace(val keySpaceName: String) extends Dynamic {
 class CassandraType(val keySpaceName: String, val typeName: String) {
     import CassandraBase._
 
-    lazy val columns: ColumnDefinitions = {
-        val res = session.execute(s"select * from $keySpaceName.$typeName limit 1")
-        res.getColumnDefinitions()
+    var _columns: Map[String, String] = null
+
+    def columns: Map[String, String] = {
+        if(_columns == null)
+	        _columns = selectOrElse({
+	            val sql = s"select * from $keySpaceName.$typeName limit 1"
+	            logger.debug(sql)
+		        val res = session.execute(sql)
+		        println(res.getColumnDefinitions().size())
+		        val map = scala.collection.mutable.Map[String, String]()
+		        for(cd <- res.getColumnDefinitions().asList) {
+		            map += cd.getName -> cd.getType.toString
+		        }
+		        Map(map.toSeq: _*)
+	        }, Map.empty)
+        
+	    println(_columns)
+        _columns
     }
     
     def spawn = new CassandraObject(typeName, null)
     
     def get(query: String): CassandraObject = {
         logger.debug(query)
-        val results = session.execute(query)
-        results.one() match {
-          case null => null
-          case r: Row => new CassandraObject(typeName, r)
+        selectOrElse({
+	        val results = session.execute(query)
+	        results.one() match {
+	          case null => null
+	          case r: Row => new CassandraObject(typeName, r)
+	        }
+        }, null)
+    }
+    
+    def selectOrElse[T](f: => T, g: => T): T = {
+        if(!schemaless) return f
+        
+        try f catch { 
+            case iqe: InvalidQueryException => 
+                if(schemaless && iqe.getMessage().contains("unconfigured columnfamily")) g.asInstanceOf[T] 
+                else throw iqe
         }
     }
 
     def fetch(query: String): Iterator[CassandraObject] = {
         logger.debug(query)
-        val results = session.execute(query).iterator
-        return new Iterator[CassandraObject] {
-            def hasNext = results.hasNext
-            
-            def next = new CassandraObject(typeName, results.next)
-        }
+        selectOrElse({
+	        val results = session.execute(query).iterator
+	        return new Iterator[CassandraObject] {
+	            def hasNext = results.hasNext
+	            
+	            def next = new CassandraObject(typeName, results.next)
+	        }
+        }, Seq.empty.toIterator)
     }
 
     def put(tuples: (String, Any)*): CassandraObject = {
@@ -78,18 +110,42 @@ class CassandraType(val keySpaceName: String, val typeName: String) {
         co.fields ++= tuples.toMap
         put(co)
     }
+    
+    def adjustSchema(co: CassandraObject) {
+        val newColumns = co.fields.keys.toBuffer.diff(columns.keys.toBuffer)
+        if(newColumns.isEmpty) return
         
+        if(columns.isEmpty) { // new table
+            if(newColumns.contains("id")) newColumns -= "id"
+            val cols = newColumns.map(column => s"$column ${guessType(co.get(column))}").mkString(",\n\t")
+            val sql = s"CREATE TABLE $keySpaceName.$typeName (\n\tid uuid PRIMARY KEY,\n\t$cols\n);"
+            logger.info(sql)
+            session.execute(sql)
+        } else { // add columns
+            newColumns.map(column => {
+                val sql = s"ALTER TABLE $keySpaceName.$typeName ADD $column ${guessType(co.get(column))}"
+                logger.info(sql)
+                session.execute(sql)
+            })
+        }
+        _columns = null
+    }
+    
     def put(co: CassandraObject): CassandraObject = {
+        adjustSchema(co)
+        
         val sql = if(co.obj == null) { // new object insert or replace
             if( co.id == null ) co.id = UUID.randomUUID // new object insert
             
             val names = co.fields.keys.mkString(", ")
-            val values = co.fields.keys.map(key => (key, co.fields(key))).map(e => serialize(columns.getType(e._1).toString, e._2)).mkString(", ")
+            val values = co.fields.keys.map(key => (key, co.fields(key))).map(e => 
+                serialize(columns(e._1.toLowerCase), e._2)
+            ).mkString(", ")
             s"insert into $keySpaceName.$typeName($names) values($values)"
         } else { // merge
             val kvs = co.fields.keys.map(key => {
-              val v = serialize(columns.getType(key).toString, co.fields(key)) 
-              s"$key = $v"
+                val v = serialize(columns(key.toLowerCase), co.fields(key))
+                s"$key = $v"
             }).mkString(", ")
             s"update $keySpaceName.$typeName set $kvs where id = ${co.id}"
         }
@@ -119,6 +175,15 @@ class CassandraType(val keySpaceName: String, val typeName: String) {
             case "uuid" => value.toString
             case "timestamp" => "'" + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(value.asInstanceOf[Date]) + "'"
             case _ => s"'${value.toString}'"
+        }
+    }
+    
+    def guessType(value: Any): String = {
+        value match {
+          case _: Int => "int"
+          case _: Date => "timestamp"
+          case _: UUID => "uuid"
+          case _ => "varchar"
         }
     }
 }

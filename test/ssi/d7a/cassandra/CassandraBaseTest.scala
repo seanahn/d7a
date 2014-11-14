@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.Assert._
 import java.text.SimpleDateFormat
 import java.util.Date
+import scalaz.IsEmpty
 
 object CassandraTest {
     val cluster = Cluster.builder.addContactPoint("127.0.0.1").build
@@ -80,7 +81,7 @@ class CassandraTest {
     import CassandraTest._
     
     @Test
-    def test {
+    def testCrud {
         setLogLevel(Level.DEBUG, "ssi")
 
         CassandraBase.logger.debug("getting table")
@@ -138,5 +139,37 @@ class CassandraTest {
                 cnt.asInstanceOf[Int] + 1
             }
         })
+    }
+
+    @Test
+    def testSchemaless {
+        setLogLevel(Level.DEBUG, "ssi")
+        CassandraBase.schemaless = true
+
+        CassandraBase.logger.debug("getting table")
+        val oppgenruns = CassandraBase.test.oppgenruns
+        CassandraBase.logger.debug("getting row")
+        
+        // select from a non-existing table
+        var run = oppgenruns.get("select * from test.oppgenruns")
+        assertNull(run)
+        var runs = oppgenruns.fetch("select * from test.oppgenruns")
+        assertTrue(runs.isEmpty)
+        
+        // a new table gets created
+        var now = System.currentTimeMillis()
+        run = oppgenruns += ("id" -> null, "name" -> "an opp gen run", "startedAt" -> new Date(now))
+        assertEquals(now / 1000 * 1000, run.startedAt.asInstanceOf[Date].getTime())
+        
+        // the table gets altered
+        now = System.currentTimeMillis()
+        run.stoppedAt = new Date(now)
+        run.status = "completed"
+        run = oppgenruns += run
+        assertEquals(now / 1000 * 1000, run.stoppedAt.asInstanceOf[Date].getTime())
+        assertEquals("completed", run.status)
+        
+        $("""CREATE INDEX ON test.oppgenruns (stoppedat);""")
+        run = oppgenruns.get("select * from test.oppgenruns where stoppedat = '2014-01-01'")
     }
 }
